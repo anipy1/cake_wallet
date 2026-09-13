@@ -253,6 +253,8 @@ abstract class Bitcoin {
   bool hasSelectedArk(Object wallet);
   Stream<int>? arkPaymentAmounts(Object wallet);
   int? arkMinSendSats(Object wallet);
+  bool hasArk(Object wallet);
+  Future<Map<String, String>?> arkDelegate(Object wallet);
   bool isBitcoinReceivePageOption(ReceivePageOption option);
   BitcoinAddressType getOptionToType(ReceivePageOption option);
   bool hasTaprootInput(PendingTransaction pendingTransaction);

@@ -23,6 +23,8 @@ bool _hasLightning(DashboardViewModel vm) => vm.hasLightning;
 
 bool _hasMweb(DashboardViewModel vm) => vm.hasMweb;
 
+bool _hasArk(DashboardViewModel vm) => vm.hasArk;
+
 bool _hasWalletConnect(DashboardViewModel vm) => vm.hasWalletConnect;
 
 bool _hasAccounts(DashboardViewModel vm) => vm.balanceViewModel.hasAccounts;
@@ -84,6 +86,8 @@ class SettingsSectionData {
     SettingsListItem("assets/new-ui/settings_row_icons/wc.svg", S.current.walletConnect,
         Routes.walletConnectConnectionsListing,
         condition: _hasWalletConnect),
+    SettingsListItem("assets/new-ui/crypto_full_icons/arkade.svg", "Arkade", Routes.arkSettings,
+        condition: _hasArk),
     //SettingsListItem("assets/new-ui/settings_row_icons/silent-payments.svg", S.current.silent_payments_settings, Routes.silentPaymentsSettings, condition: _isBtc),
     //SettingsListItem("assets/new-ui/settings_row_icons/mweb.svg", S.current.litecoin_mweb_settings, Routes.mwebSettings, condition: _hasMweb),
     SettingsListItem(

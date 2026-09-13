@@ -143,6 +143,27 @@ class ArkWallet {
     }
   }
 
+  /// The delegate authorised to renew this wallet's VTXOs.
+  ///
+  /// Flattened to strings because it is only ever displayed. Null when renewal is not delegated
+  /// or the client is not up.
+  Future<Map<String, String>?> getDelegate() async {
+    if (!isInitialized) return null;
+    try {
+      final delegate = await client.delegateInfo();
+      if (delegate == null) return null;
+      return {
+        'url': delegate.url,
+        'pubkey': delegate.pubkey,
+        'fee': delegate.fee,
+        'address': delegate.address,
+      };
+    } catch (e) {
+      printV('Ark: could not read the delegate: $e');
+      return null;
+    }
+  }
+
   /// Ark transaction history, keyed by id so it merges with the wallet's existing history.
   ///
   /// Boarding is always incoming and offboarding always outgoing, so their amounts are unsigned;

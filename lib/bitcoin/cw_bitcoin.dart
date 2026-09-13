@@ -333,6 +333,15 @@ class CWBitcoin extends Bitcoin {
   }
 
   @override
+  bool hasArk(Object wallet) => wallet is BitcoinWallet && wallet.isArkInitialized;
+
+  @override
+  Future<Map<String, String>?> arkDelegate(Object wallet) async {
+    if (wallet is! BitcoinWallet) return null;
+    return wallet.arkWallet?.getDelegate();
+  }
+
+  @override
   int? arkMinSendSats(Object wallet) {
     if (wallet is! BitcoinWallet) return null;
     return wallet.arkWallet?.minSendSats;

@@ -758,6 +758,9 @@ abstract class DashboardViewModelBase with Store {
       wallet.type == WalletType.bitcoin && wallet.isSoftwareWallet && bitcoin!.useLightning(wallet);
 
   @computed
+  bool get hasArk => wallet.type == WalletType.bitcoin && bitcoin!.hasArk(wallet);
+
+  @computed
   bool get hasWalletConnect =>
       isWalletConnectCompatibleChain(wallet.type) && !wallet.isHardwareWallet;
 

@@ -115,6 +115,7 @@ import 'package:cake_wallet/src/screens/settings/mweb_settings.dart';
 import 'package:cake_wallet/src/screens/settings/other_settings_page.dart';
 import 'package:cake_wallet/src/screens/settings/privacy_page.dart';
 import 'package:cake_wallet/src/screens/settings/security_backup_page.dart';
+import 'package:cake_wallet/src/screens/settings/ark_settings.dart';
 import 'package:cake_wallet/src/screens/settings/silent_payments_settings.dart';
 import 'package:cake_wallet/src/screens/settings/silent_payments_logs_page.dart';
 import 'package:cake_wallet/src/screens/settings/trocador_providers_page.dart';
@@ -579,6 +580,11 @@ Route<dynamic> createRoute(RouteSettings settings) {
                   child: getIt.get<AuthPage>(
                       param1: settings.arguments as OnAuthenticationFinished, param2: false),
                   onWillPop: () async => false));
+
+    case Routes.arkSettings:
+      return CupertinoPageRoute<void>(
+        builder: (context) => getIt.get<ArkSettingsPage>(),
+      );
 
     case Routes.silentPaymentsSettings:
       return handleRouteWithPlatformAwareness(

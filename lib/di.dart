@@ -1,6 +1,8 @@
 import 'package:cake_wallet/new-ui/models/wallet_layer.dart';
 import 'dart:async' show Timer;
 
+import 'package:cake_wallet/src/screens/settings/ark_settings.dart';
+import 'package:cake_wallet/view_model/settings/ark_settings_view_model.dart';
 import 'package:cake_wallet/.secrets.g.dart' as secrets;
 import 'package:cake_wallet/anonpay/anonpay_api.dart';
 import 'package:cake_wallet/anonpay/anonpay_invoice_info.dart';
@@ -1158,6 +1160,9 @@ Future<void> setup({
 
   getIt.registerFactory(
       () => SilentPaymentsSettingsPage(getIt.get<SilentPaymentsSettingsViewModel>()));
+
+  getIt.registerFactory(() => ArkSettingsViewModel(getIt.get<AppStore>().wallet!));
+  getIt.registerFactory(() => ArkSettingsPage(getIt.get<ArkSettingsViewModel>()));
 
   getIt.registerFactory(() => SilentPaymentsLogPage(getIt.get<SilentPaymentsSettingsViewModel>()));
 
