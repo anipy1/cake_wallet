@@ -21,6 +21,17 @@ const _kBoltzUrl = 'https://api.boltz.exchange';
 /// see every address this wallet queries.
 const _kEsploraUrl = 'https://blockstream.info/api';
 
+/// Delegated renewal, always on.
+///
+/// VTXOs expire, and an expired one keeps its value but loses the ability to be exited
+/// unilaterally until renewed. Renewing needs the wallet open, which suits a mobile wallet badly,
+/// so a delegate does it in the background. A delegate can only renew - it can never move funds.
+///
+/// This is deliberately not user-configurable. Turning it on or off changes the addresses the
+/// wallet derives, because a delegated VTXO carries an extra Taproot leaf, so a mid-life toggle
+/// would strand funds at addresses the wallet no longer watches.
+const _kDelegatorUrl = 'https://delegate.arkade.money';
+
 /// Wraps the Ark client for a single Bitcoin wallet.
 ///
 /// Mirrors [LightningWallet]: it is constructed by `BitcoinWallet`, derives from the same seed,
@@ -67,9 +78,11 @@ class ArkWallet {
         server: _kArkServer,
         boltz: _kBoltzUrl,
         dataDir: dataDir,
+        delegatorUrl: _kDelegatorUrl,
       );
 
-      printV('Ark: connected to $_kArkServer');
+      printV('Ark: connected to $_kArkServer, renewal delegated to $_kDelegatorUrl');
+
       return true;
     } catch (e) {
       // A failure here must not take the Bitcoin wallet down with it.
