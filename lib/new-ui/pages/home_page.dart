@@ -3,6 +3,7 @@ import "dart:async";
 import 'package:cake_wallet/core/auth_service.dart';
 import 'package:cake_wallet/di.dart';
 import 'package:cake_wallet/generated/i18n.dart';
+import 'package:cake_wallet/new-ui/models/wallet_layer.dart';
 import 'package:cake_wallet/new-ui/modal_navigator.dart';
 import 'package:cake_wallet/new-ui/pages/account_customizer.dart';
 import 'package:cake_wallet/new-ui/pages/card_customizer.dart';
@@ -37,7 +38,7 @@ class NewHomePage extends StatefulWidget {
 
 class _NewHomePageState extends State<NewHomePage> {
   MoneroAccountListViewModel? accountListViewModel;
-  bool _lightningMode = false;
+  WalletLayer _layer = WalletLayer.onChain;
 
   @override
   void initState() {
@@ -46,7 +47,7 @@ class _NewHomePageState extends State<NewHomePage> {
     reaction((_) => widget.dashboardViewModel.wallet, (_) {
       _setAccountViewModel();
       setState(() {
-        _lightningMode = false;
+        _layer = WalletLayer.onChain;
       });
     });
 
@@ -115,10 +116,10 @@ class _NewHomePageState extends State<NewHomePage> {
                       TopBar(
                         key: ValueKey(widget.dashboardViewModel.wallet.id),
                         dashboardViewModel: widget.dashboardViewModel,
-                        lightningMode: _lightningMode,
-                        onLightningSwitchPress: () {
+                        layer: _layer,
+                        onLayerSelected: (layer) {
                           setState(() {
-                            _lightningMode = !_lightningMode;
+                            _layer = layer;
                           });
                         },
                         onSettingsButtonPress: () async {
@@ -155,7 +156,7 @@ class _NewHomePageState extends State<NewHomePage> {
                                   dashboardViewModel: widget.dashboardViewModel,
                                   accountListViewModel: accountListViewModel,
                                   onCompactModeBackgroundCardsTapped: openAccountCustomizer,
-                                  lightningMode: _lightningMode,
+                                  layer: _layer,
                                 ),
                               ),
                               Observer(builder: (_) {
@@ -191,7 +192,7 @@ class _NewHomePageState extends State<NewHomePage> {
                               return Column(
                                 children: [
                                   CoinActionRow(
-                                    lightningMode: _lightningMode,
+                                    layer: _layer,
                                     showSwap: widget.dashboardViewModel.isEnabledSwapAction,
                                     walletType: widget.dashboardViewModel.wallet.type,
                                   ),
@@ -267,7 +268,7 @@ class _NewHomePageState extends State<NewHomePage> {
 
   void openCardCustomizer() async {
     final bloc = getIt.get<CardCustomizerBloc>(
-        param1: _lightningMode,
+        param1: _layer.isLightning,
         param2: widget.dashboardViewModel.settingsStore.displayAmountsInSatoshi);
     await CupertinoScaffold.showCupertinoModalBottomSheet(
       barrierColor: Colors.black.withAlpha(60),

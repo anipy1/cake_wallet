@@ -5,6 +5,7 @@ import 'package:cake_wallet/di.dart';
 import 'package:cake_wallet/entities/balance_display_mode.dart';
 import 'package:cake_wallet/entities/bitcoin_amount_display_mode.dart';
 import 'package:cake_wallet/generated/i18n.dart';
+import 'package:cake_wallet/new-ui/models/wallet_layer.dart';
 import 'package:cake_wallet/new-ui/modal_navigator.dart';
 import 'package:cake_wallet/new-ui/pages/send_page.dart';
 import 'package:cake_wallet/new-ui/widgets/buy_sell/buy_sell_selector_modal.dart';
@@ -32,7 +33,7 @@ class CardsView extends StatefulWidget {
       {super.key,
       required this.dashboardViewModel,
       required this.accountListViewModel,
-      required this.lightningMode,
+      required this.layer,
       required this.onCompactModeBackgroundCardsTapped,
       required this.onCustomizeTapped});
 
@@ -40,7 +41,7 @@ class CardsView extends StatefulWidget {
   final MoneroAccountListViewModel? accountListViewModel;
   final VoidCallback onCompactModeBackgroundCardsTapped;
   final VoidCallback onCustomizeTapped;
-  final bool lightningMode;
+  final WalletLayer layer;
 
   @override
   _CardsViewState createState() => _CardsViewState();
@@ -140,7 +141,7 @@ class _CardsViewState extends State<CardsView> {
               // The second balance should always be the lightning balance
               // printV(widget.dashboardViewModel.balanceViewModel.formattedBalances.first.availableBalance);
               final walletBalanceRecord = widget.dashboardViewModel.balanceViewModel
-                  .getMainBalanceRecord(widget.lightningMode);
+                  .getMainBalanceRecord(widget.layer);
 
               late final String walletBalance;
               late final String walletFiatBalance;
@@ -167,7 +168,9 @@ class _CardsViewState extends State<CardsView> {
               if (widget.dashboardViewModel.cardDesigns.isEmpty ||
                   realIndex >= widget.dashboardViewModel.cardDesigns.length)
                 cardDesign = CardDesign.genericDefault;
-              else if (widget.lightningMode)
+              else if (widget.layer.isArk)
+                cardDesign = CardDesign.arkadeSpecial;
+              else if (widget.layer.isLightning)
                 cardDesign = widget.dashboardViewModel.cardDesigns[realIndex + 1];
               else
                 cardDesign = widget.dashboardViewModel.cardDesigns[realIndex];
@@ -186,7 +189,9 @@ class _CardsViewState extends State<CardsView> {
                   ? ""
                   : walletBalanceRecord?.formattedAssetTitle ?? assetTitleFallback;
 
-              final List<BalanceCardAction> actions = widget.lightningMode
+              final List<BalanceCardAction> actions = widget.layer.isArk
+                  ? const <BalanceCardAction>[]
+                  : widget.layer.isLightning
                   ? [
                       BalanceCardAction(
                         label: S.current.bitcoin_lightning_deposit,
@@ -239,7 +244,7 @@ class _CardsViewState extends State<CardsView> {
 
   String get assetTitleFallback =>
       widget.dashboardViewModel.appStore.amountParsingProxy.getCryptoSymbol(
-          widget.lightningMode ? CryptoCurrency.btcln : widget.dashboardViewModel.wallet.currency);
+          widget.layer.asset ?? widget.dashboardViewModel.wallet.currency);
 
   bool _shouldCapitalizeAssetName() {
     if (widget.dashboardViewModel.wallet.type != WalletType.bitcoin) {
@@ -250,7 +255,7 @@ class _CardsViewState extends State<CardsView> {
       case BitcoinAmountDisplayMode.satoshi:
         return false;
       case BitcoinAmountDisplayMode.satoshiForLightning:
-        return !widget.lightningMode;
+        return !widget.layer.isLightning;
       case BitcoinAmountDisplayMode.bitcoin:
         return true;
       default:

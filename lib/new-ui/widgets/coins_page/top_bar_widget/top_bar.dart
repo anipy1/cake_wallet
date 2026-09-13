@@ -3,7 +3,8 @@ import 'dart:io';
 
 import 'package:cake_wallet/generated/i18n.dart';
 import 'package:cake_wallet/new-ui/widgets/coins_page/top_bar_widget/chain_icon.dart';
-import 'package:cake_wallet/new-ui/widgets/coins_page/top_bar_widget/lightning_switcher.dart';
+import 'package:cake_wallet/new-ui/models/wallet_layer.dart';
+import 'package:cake_wallet/new-ui/widgets/coins_page/top_bar_widget/layer_switcher.dart';
 import 'package:cake_wallet/new-ui/widgets/coins_page/top_bar_widget/sync_bar.dart';
 import "package:cake_wallet/new-ui/widgets/coins_page/wallet_info.dart";
 import 'package:cake_wallet/new-ui/widgets/modern_button.dart';
@@ -16,15 +17,15 @@ import 'package:mobx/mobx.dart';
 
 class TopBar extends StatefulWidget {
   const TopBar({
-    required this.lightningMode,
-    required this.onLightningSwitchPress,
+    required this.layer,
+    required this.onLayerSelected,
     required this.dashboardViewModel,
     required this.onSettingsButtonPress,
     super.key,
   });
 
-  final bool lightningMode;
-  final VoidCallback onLightningSwitchPress;
+  final WalletLayer layer;
+  final ValueChanged<WalletLayer> onLayerSelected;
   final VoidCallback onSettingsButtonPress;
   final DashboardViewModel dashboardViewModel;
 
@@ -113,9 +114,9 @@ class _TopBarState extends State<TopBar> {
             spacing: 12,
             children: [
               widget.dashboardViewModel.hasLightning
-                  ? LightningSwitcher(
-                      lightningMode: widget.lightningMode,
-                      onLightningSwitchPress: widget.onLightningSwitchPress,
+                  ? LayerSwitcher(
+                      layer: widget.layer,
+                      onLayerSelected: widget.onLayerSelected,
                     )
                   : ChainIcon(
                       iconPath: widget.dashboardViewModel.wallet.currency.flatIconPath ?? "",

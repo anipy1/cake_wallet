@@ -6,6 +6,7 @@ import 'package:cake_wallet/entities/fiat_api_mode.dart';
 import 'package:cake_wallet/entities/fiat_currency.dart';
 import 'package:cake_wallet/entities/sort_balance_types.dart';
 import 'package:cake_wallet/generated/i18n.dart';
+import 'package:cake_wallet/new-ui/models/wallet_layer.dart';
 import 'package:cake_wallet/reactions/wallet_connect.dart';
 import 'package:cake_wallet/evm/evm.dart';
 import 'package:cake_wallet/solana/solana.dart';
@@ -443,13 +444,13 @@ abstract class BalanceViewModelBase with Store {
     return balance;
   }
 
-  BalanceRecord? getMainBalanceRecord(bool lightningMode) {
-    if (lightningMode) {
-      // Look the record up by asset rather than by position: `formattedBalances` is sorted by
-      // fiat value, gross value or alphabetically, so index 1 is not reliably Lightning once a
-      // wallet carries more than two balances (e.g. Ark).
-      return formattedBalances.firstWhereOrNull((item) => item.asset == CryptoCurrency.btcln) ??
-          formattedBalances.elementAtOrNull(1);
+  BalanceRecord? getMainBalanceRecord(WalletLayer layer) {
+    // Look the record up by asset rather than by position: `formattedBalances` is sorted by fiat
+    // value, gross value or alphabetically, so a fixed index is not reliable once a wallet carries
+    // more than two balances.
+    final layerAsset = layer.asset;
+    if (layerAsset != null) {
+      return formattedBalances.firstWhereOrNull((item) => item.asset == layerAsset);
     }
 
     if (wallet.walletInfo.favoriteTokenAddress != null) {

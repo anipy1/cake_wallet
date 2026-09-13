@@ -138,6 +138,8 @@ class CardDesign {
 
   static const btcln = CardDesign(imagePath: "assets/new-ui/balance_card_icons/lightning.svg");
 
+  static const btcark = CardDesign(imagePath: "assets/new-ui/balance_card_icons/arkade.svg");
+
   static const xmr = CardDesign(imagePath: "assets/new-ui/balance_card_icons/monero.svg");
 
   static const ltc = CardDesign(imagePath: "assets/new-ui/balance_card_icons/litecoin.svg");
@@ -201,6 +203,17 @@ class CardDesign {
       backgroundType: CardDesignBackgroundTypes.svgFull,
       colors: CardColorCombination.light,
       imagePath: "assets/new-ui/balance_card_backgrounds/litecoin.svg");
+
+  /// Arkade brand colours: #F14317 orange into #351791 purple. Deliberately distinct from the
+  /// bitcoin and lightning cards, which are both orange, so the three layers read apart at a glance.
+  static const arkadeSpecial = CardDesign(
+      gradient: const LinearGradient(
+          colors: <Color>[Color(0xFFF14317), Color(0xFF351791)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter),
+      backgroundType: CardDesignBackgroundTypes.svgFull,
+      colors: CardColorCombination.light,
+      imagePath: "assets/new-ui/balance_card_backgrounds/arkade.svg");
 
   static const lnSpecial = CardDesign(
       gradient: const LinearGradient(
@@ -365,6 +378,7 @@ class CardDesign {
     CryptoCurrency.doge: _CurrencyIconNames(ticker: 'doge', longName: 'dogecoin'),
     CryptoCurrency.eth: _CurrencyIconNames(ticker: 'eth', longName: 'ethereum'),
     CryptoCurrency.btcln: _CurrencyIconNames(ticker: 'ln', longName: 'lightning'),
+    CryptoCurrency.btcark: _CurrencyIconNames(ticker: 'ark', longName: 'arkade'),
     CryptoCurrency.ltc: _CurrencyIconNames(ticker: 'ltc', longName: 'litecoin'),
     CryptoCurrency.xmr:
         _CurrencyIconNames(ticker: 'xmr', longName: 'monero', ogPath: 'assets/images/xmr-og.webp'),
@@ -414,6 +428,7 @@ class CardDesign {
     xmrSpecial,
     ltcSpecial,
     lnSpecial,
+    arkadeSpecial,
     tronSpecial,
     bchSpecial,
     wowSpecial,
@@ -440,6 +455,7 @@ class CardDesign {
     CryptoCurrency.eth: eth,
     CryptoCurrency.ltc: ltc,
     CryptoCurrency.btcln: btcln,
+    CryptoCurrency.btcark: btcark,
     CryptoCurrency.trx: tron,
     CryptoCurrency.sol: sol,
     CryptoCurrency.maticpoly: pol,
@@ -461,6 +477,7 @@ class CardDesign {
     CryptoCurrency.eth: ethSpecial,
     CryptoCurrency.ltc: ltcSpecial,
     CryptoCurrency.btcln: lnSpecial,
+    CryptoCurrency.btcark: arkadeSpecial,
     CryptoCurrency.trx: tronSpecial,
     CryptoCurrency.sol: solSpecial,
     CryptoCurrency.bch: bchSpecial,

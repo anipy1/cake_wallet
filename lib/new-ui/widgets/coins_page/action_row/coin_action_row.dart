@@ -1,3 +1,4 @@
+import 'package:cake_wallet/new-ui/models/wallet_layer.dart';
 import 'package:cake_wallet/bitcoin/bitcoin.dart';
 import 'package:cake_wallet/core/open_crypto_pay/open_cryptopay_service.dart';
 import 'package:cake_wallet/di.dart';
@@ -28,14 +29,21 @@ import 'coin_action_button.dart';
 
 class CoinActionRow extends StatelessWidget {
   const CoinActionRow(
-      {super.key, this.lightningMode = false, this.showSwap = true, required this.walletType});
+      {super.key, this.layer = WalletLayer.onChain, this.showSwap = true, required this.walletType});
 
-  final bool lightningMode;
+  final WalletLayer layer;
   final bool showSwap;
   final WalletType walletType;
 
   @override
   Widget build(BuildContext context) {
+    // Ark exposes a balance only. Send, receive and swap all route to the on-chain or lightning
+    // handlers, so showing them here would spend the wrong funds while the Ark balance is on
+    // screen. Hide the row until those paths exist.
+    if (!layer.supportsActions) {
+      return const SizedBox.shrink();
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18.0),
       child: Row(
@@ -57,7 +65,7 @@ class CoinActionRow extends StatelessWidget {
                 final sendPage = getIt.get<NewSendPage>(
                   param1: SendPageParams(
                     unspentCoinType:
-                        lightningMode ? UnspentCoinType.lightning : UnspentCoinType.nonMweb,
+                        layer.isLightning ? UnspentCoinType.lightning : UnspentCoinType.nonMweb,
                   ),
                 );
 
@@ -76,7 +84,7 @@ class CoinActionRow extends StatelessWidget {
                 );
               } else {
                 Map<String, dynamic>? args;
-                if (lightningMode) args = {'coinTypeToSpendFrom': UnspentCoinType.lightning};
+                if (layer.isLightning) args = {'coinTypeToSpendFrom': UnspentCoinType.lightning};
                 Navigator.of(context).pushNamed(Routes.send, arguments: args);
               }
             },
@@ -92,7 +100,7 @@ class CoinActionRow extends StatelessWidget {
             label: S.of(context).receive,
             action: () async {
               if (FeatureFlag.hasNewUiExtraPages) {
-                final page = getIt.get<NewReceivePage>(param1: lightningMode);
+                final page = getIt.get<NewReceivePage>(param1: layer.isLightning);
                 CupertinoScaffold.showCupertinoModalBottomSheet(
                   context: context,
                   barrierColor: Colors.black.withAlpha(60),
@@ -102,7 +110,7 @@ class CoinActionRow extends StatelessWidget {
                 );
               } else {
                 // ToDo: (Konsti) refactor as part of the derivation PR (I hate myself for it)
-                if (lightningMode) {
+                if (layer.isLightning) {
                   await getIt<WalletAddressListViewModel>().setAddressType(
                       bitcoin!.getOptionToType(bitcoin!.getBitcoinLightningReceivePageOption()));
                 } else {
@@ -125,7 +133,7 @@ class CoinActionRow extends StatelessWidget {
               label: S.of(context).swap,
               action: () {
                 final page =
-                    getIt.get<NewSwapPage>(param2: lightningMode ? CryptoCurrency.btcln : null);
+                    getIt.get<NewSwapPage>(param2: layer.isLightning ? CryptoCurrency.btcln : null);
                 if (FeatureFlag.hasNewUiExtraPages) {
                   CupertinoScaffold.showCupertinoModalBottomSheet(
                     context: context,
