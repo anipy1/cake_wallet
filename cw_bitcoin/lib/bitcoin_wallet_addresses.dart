@@ -117,9 +117,13 @@ abstract class BitcoinWalletAddressesBase extends ElectrumWalletAddresses with S
   @override
   PaymentURI getPaymentUri(String amount) {
     // An `ark1...` address is not a Bitcoin address, so it must not be wrapped in a `bitcoin:`
-    // URI. The boarding address is a real on-chain address and keeps the normal treatment.
+    // URI: a wallet scanning `bitcoin:ark1...?` parses the scheme, treats the payment as
+    // on-chain and routes it through a settlement round instead of paying off-chain. Ark has no
+    // URI scheme of its own, so the bare address is emitted, which means a requested amount
+    // cannot be encoded in the QR. The boarding address is a real on-chain address and keeps the
+    // normal treatment.
     if (addressPageType == ArkAddressType.p2ark) {
-      return BitcoinURI(address: address, amount: amount);
+      return ExternalAddressURI(address: address, amount: amount);
     }
 
     if (addressPageType is LightningAddressType && lightningWallet != null) {
