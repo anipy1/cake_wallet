@@ -17,6 +17,9 @@ import 'package:cw_bitcoin/electrum_wallet.dart';
 import 'package:cw_bitcoin/electrum_wallet_snapshot.dart';
 import 'package:cw_bitcoin/locktime.dart';
 import 'package:cw_bitcoin/hardware/bitcoin_hardware_wallet_service.dart';
+import 'package:cw_bitcoin/ark/ark_wallet.dart';
+import 'package:cw_core/pathForWallet.dart';
+import 'package:cw_core/wallet_type.dart';
 import 'package:cw_bitcoin/lightning/lightning_wallet.dart';
 import 'package:cw_bitcoin/hardware/bitcoin_ledger_service.dart';
 import 'package:cw_bitcoin/output_ordering.dart';
@@ -166,6 +169,45 @@ abstract class BitcoinWalletBase extends ElectrumWallet with Store {
 
     if (initialLightningBalance != null) {
       balance[CryptoCurrency.btcln] = initialLightningBalance;
+    }
+
+    if (seedBytes != null && ArkWallet.isAvailable) {
+      // Fire-and-forget: Ark is an additional balance, so a failure to reach the operator must
+      // never block or break the Bitcoin wallet.
+      _initArk(seedBytes);
+    }
+  }
+
+  Future<void> _initArk(Uint8List seedBytes) async {
+    try {
+      final dir = await pathForWalletDir(name: walletInfo.name, type: WalletType.bitcoin);
+      final wallet = ArkWallet(seedBytes: seedBytes, dataDir: '$dir/ark');
+
+      if (!await wallet.init()) return;
+
+      arkWallet = wallet;
+      await updateArkBalance();
+    } catch (e) {
+      printV('Ark: initialisation failed: $e');
+    }
+  }
+
+  bool get isArkInitialized => arkWallet?.isInitialized == true;
+
+  @action
+  Future<void> updateArkBalance() async {
+    final wallet = arkWallet;
+    if (wallet == null) return;
+
+    try {
+      final arkBalance = await wallet.getBalance();
+      balance[CryptoCurrency.btcark] = ElectrumBalance(
+        confirmed: arkBalance,
+        unconfirmed: Money.zero(CryptoCurrency.btcark),
+        frozen: Money.zero(CryptoCurrency.btcark),
+      );
+    } catch (e) {
+      printV('Ark: could not update balance: $e');
     }
   }
 
@@ -416,6 +458,9 @@ abstract class BitcoinWalletBase extends ElectrumWallet with Store {
   }
 
   LightningWallet? lightningWallet;
+
+  /// Ark (Arkade) balance for this wallet. Derived from the same seed as the Bitcoin wallet.
+  ArkWallet? arkWallet;
 
   late final PayjoinManager payjoinManager;
 

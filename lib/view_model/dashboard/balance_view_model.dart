@@ -445,7 +445,11 @@ abstract class BalanceViewModelBase with Store {
 
   BalanceRecord? getMainBalanceRecord(bool lightningMode) {
     if (lightningMode) {
-      return formattedBalances.elementAtOrNull(1);
+      // Look the record up by asset rather than by position: `formattedBalances` is sorted by
+      // fiat value, gross value or alphabetically, so index 1 is not reliably Lightning once a
+      // wallet carries more than two balances (e.g. Ark).
+      return formattedBalances.firstWhereOrNull((item) => item.asset == CryptoCurrency.btcln) ??
+          formattedBalances.elementAtOrNull(1);
     }
 
     if (wallet.walletInfo.favoriteTokenAddress != null) {

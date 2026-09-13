@@ -51,6 +51,7 @@ class CryptoCurrency extends EnumerableItem<int> with Serializable<int> implemen
     CryptoCurrency.xmr,
     CryptoCurrency.btc,
     CryptoCurrency.btcln,
+    CryptoCurrency.btcark,
     CryptoCurrency.eth,
     CryptoCurrency.ltc,
     CryptoCurrency.doge,
@@ -580,6 +581,15 @@ class CryptoCurrency extends EnumerableItem<int> with Serializable<int> implemen
       iconPath: 'assets/new-ui/crypto_full_icons/lightning.svg',
       chainIconPath: "assets/new-ui/chain_badges/lightning.svg",
       decimals: 8);
+  static const btcark = CryptoCurrency(
+      title: 'BTC',
+      tag: 'ARK',
+      fullName: 'Bitcoin Arkade',
+      raw: 111,
+      name: 'btcark',
+      iconPath: 'assets/new-ui/crypto_full_icons/arkade.svg',
+      chainIconPath: "assets/new-ui/chain_badges/arkade.svg",
+      decimals: 8);
   static const shib = CryptoCurrency(
       title: 'SHIB',
       tag: 'ETH',
@@ -1020,6 +1030,7 @@ class CryptoCurrency extends EnumerableItem<int> with Serializable<int> implemen
     'shibainu': shib,
     'zcash': zec,
     'lightning': btcln,
+    'arkade': btcark,
     'base': baseEth,
     'arbitrum': arbEth,
     'bsc': bnb,
