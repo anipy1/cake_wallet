@@ -324,6 +324,14 @@ class CWBitcoin extends Bitcoin {
   }
 
   @override
+  bool hasSelectedArk(Object wallet) {
+    final bitcoinWallet = wallet as ElectrumWallet;
+    // Only the off-chain Ark address. Boarding is an ordinary on-chain address and should keep
+    // the bitcoin treatment.
+    return bitcoinWallet.walletAddresses.addressPageType == ArkAddressType.p2ark;
+  }
+
+  @override
   BitcoinAddressType getBitcoinAddressType(ReceivePageOption option) {
     switch (option) {
       case BitcoinReceivePageOption.p2pkh:

@@ -1,4 +1,5 @@
 import 'package:bitcoin_base/bitcoin_base.dart';
+import 'package:cw_bitcoin/ark/ark_address_type.dart';
 import 'package:cw_bitcoin/lightning/lightning_addres_type.dart';
 import 'package:cw_core/receive_page_option.dart';
 
@@ -31,6 +32,15 @@ class BitcoinReceivePageOption implements ReceivePageOption {
       iconPath: "assets/new-ui/address-type-picker-icons/btc_lightning.svg",
       isCommon: true);
 
+  static const ark = BitcoinReceivePageOption._('Arkade',
+      description: "Instant payments, self-custodial",
+      iconPath: "assets/new-ui/address-type-picker-icons/arkade.svg",
+      isCommon: true);
+  static const arkBoarding = BitcoinReceivePageOption._('Arkade Boarding',
+      description: "Move Bitcoin into Arkade",
+      iconPath: "assets/new-ui/address-type-picker-icons/arkade.svg",
+      addAddressWord: true);
+
   const BitcoinReceivePageOption._(this.value,
       {this.iconPath, this.description, this.isCommon = false, this.addAddressWord = false});
 
@@ -46,6 +56,8 @@ class BitcoinReceivePageOption implements ReceivePageOption {
 
   static const all = [
     BitcoinReceivePageOption.lightning,
+    BitcoinReceivePageOption.ark,
+    BitcoinReceivePageOption.arkBoarding,
     BitcoinReceivePageOption.silent_payments,
     BitcoinReceivePageOption.p2wpkh,
     BitcoinReceivePageOption.p2tr,
@@ -83,6 +95,10 @@ class BitcoinReceivePageOption implements ReceivePageOption {
         return SilentPaymentsAddresType.p2sp;
       case BitcoinReceivePageOption.lightning:
         return LightningAddressType.p2l;
+      case BitcoinReceivePageOption.ark:
+        return ArkAddressType.p2ark;
+      case BitcoinReceivePageOption.arkBoarding:
+        return ArkAddressType.boarding;
       case BitcoinReceivePageOption.mweb:
         return SegwitAddresType.mweb;
       case BitcoinReceivePageOption.p2wpkh:
@@ -107,6 +123,10 @@ class BitcoinReceivePageOption implements ReceivePageOption {
         return BitcoinReceivePageOption.silent_payments;
       case LightningAddressType.p2l:
         return BitcoinReceivePageOption.lightning;
+      case ArkAddressType.p2ark:
+        return BitcoinReceivePageOption.ark;
+      case ArkAddressType.boarding:
+        return BitcoinReceivePageOption.arkBoarding;
       case SegwitAddresType.p2wpkh:
       default:
         return BitcoinReceivePageOption.p2wpkh;

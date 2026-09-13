@@ -88,7 +88,9 @@ abstract class WalletAddressListViewModelBase extends WalletChangeListenerViewMo
       );
 
   void setTokenCurrency(Currency curr) {
-    if (curr == wallet.currency || curr == CryptoCurrency.btcln) {
+    if (curr == wallet.currency ||
+        curr == CryptoCurrency.btcln ||
+        curr == CryptoCurrency.btcark) {
       tokenCurrency = null;
       selectedCurrency = wallet.currency;
       return;
@@ -598,6 +600,9 @@ abstract class WalletAddressListViewModelBase extends WalletChangeListenerViewMo
     if (isLightning) {
       return "assets/images/btc_chain_qr_lightning.svg";
     }
+    if (isArk) {
+      return "assets/images/btc_chain_qr_arkade.svg";
+    }
     return getQrImage(type);
   }
 
@@ -618,6 +623,15 @@ abstract class WalletAddressListViewModelBase extends WalletChangeListenerViewMo
   bool get isLightning =>
       wallet.type == WalletType.bitcoin &&
       (selectedCurrency == CryptoCurrency.btcln || bitcoin!.hasSelectedLightning(wallet));
+
+  /// True for the off-chain Ark address. The boarding address is an ordinary on-chain address, so
+  /// it deliberately keeps the bitcoin badge.
+  ///
+  /// Derived purely from the wallet's `addressPageType`, which is the only value that tracks the
+  /// picker. `selectedCurrency` is set once when the receive page opens and never reset, so
+  /// including it here would leave this true for every address type afterwards.
+  @computed
+  bool get isArk => wallet.type == WalletType.bitcoin && bitcoin!.hasSelectedArk(wallet);
 
   @computed
   bool get isZCashTransparent {

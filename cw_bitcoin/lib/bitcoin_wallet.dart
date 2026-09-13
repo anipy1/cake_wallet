@@ -187,6 +187,11 @@ abstract class BitcoinWalletBase extends ElectrumWallet with Store {
 
       arkWallet = wallet;
       await updateArkBalance();
+
+      // Publish both receive addresses: the off-chain Ark address and the on-chain boarding
+      // address used to move Bitcoin into Ark.
+      walletAddresses.arkAddress = await wallet.getAddress();
+      walletAddresses.arkBoardingAddress = await wallet.getBoardingAddress();
     } catch (e) {
       printV('Ark: initialisation failed: $e');
     }

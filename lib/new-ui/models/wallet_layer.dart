@@ -23,8 +23,13 @@ enum WalletLayer {
         WalletLayer.ark => CryptoCurrency.btcark,
       };
 
-  /// Ark currently exposes a balance only. Sending, receiving and swapping are not implemented,
-  /// so callers must not offer those actions while this layer is selected - the underlying
-  /// handlers would operate on the on-chain wallet instead.
-  bool get supportsActions => this != WalletLayer.ark;
+  /// Ark can receive: it publishes an off-chain address and an on-chain boarding address.
+  bool get supportsReceive => true;
+
+  /// Ark cannot send yet. The send and swap handlers operate on the on-chain or lightning
+  /// wallet, so offering them while Ark is selected would spend the wrong funds.
+  bool get supportsSend => this != WalletLayer.ark;
+
+  /// True when every action in the row is available.
+  bool get supportsAllActions => supportsSend && supportsReceive;
 }

@@ -1,3 +1,4 @@
+import 'package:cake_wallet/new-ui/models/wallet_layer.dart';
 import 'dart:io';
 
 import 'package:cake_wallet/anonpay/anonpay_invoice_info.dart';
@@ -486,7 +487,7 @@ Route<dynamic> createRoute(RouteSettings settings) {
     case Routes.newReceivePage:
       if (FeatureFlag.hasNewUi) {
         return handleRouteWithPlatformAwareness(
-          (context) => Material(child: getIt.get<NewReceivePage>(param1: false, param2: null)),
+          (context) => Material(child: getIt.get<NewReceivePage>(param1: WalletLayer.onChain, param2: null)),
           settings: settings,
         );
       }

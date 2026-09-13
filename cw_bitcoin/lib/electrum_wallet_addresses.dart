@@ -11,6 +11,7 @@ import 'package:cw_bitcoin/lightning/lightning_wallet.dart';
 import 'package:cw_core/pathForWallet.dart';
 import 'package:cw_bitcoin/electrum_derivations.dart';
 import 'package:cw_core/unspent_coin_type.dart';
+import 'package:cw_bitcoin/ark/ark_address_type.dart';
 import 'package:cw_core/utils/print_verbose.dart';
 import 'package:cw_core/wallet_addresses.dart';
 import 'package:cw_core/generate_name.dart';
@@ -74,9 +75,7 @@ abstract class ElectrumWalletAddressesBase extends WalletAddresses with Store {
         currentChangeAddressIndexByType = initialChangeAddressIndex ?? {},
         _addressPageType = initialAddressPageType ??
             (walletInfo.addressPageType != null
-                ? walletInfo.addressPageType == LightningAddressType.p2l.value
-                    ? LightningAddressType.p2l
-                    : BitcoinAddressType.fromValue(walletInfo.addressPageType!)
+                ? addressPageTypeFromValue(walletInfo.addressPageType!)
                 : SegwitAddresType.p2wpkh),
         silentAddresses = ObservableList<BitcoinSilentPaymentAddressRecord>.of(
             (initialSilentAddresses ?? []).toSet()),
@@ -165,7 +164,31 @@ abstract class ElectrumWalletAddressesBase extends WalletAddresses with Store {
   String? activeSilentAddress;
 
   @observable
+  /// Resolve a persisted `addressPageType` back into a [BitcoinAddressType].
+  ///
+  /// Lightning and Ark define their own types, which `bitcoin_base` does not know about and
+  /// throws on. An unrecognised value must never be fatal here: this runs while the wallet is
+  /// being opened, so throwing leaves the wallet permanently unopenable.
+  static BitcoinAddressType addressPageTypeFromValue(String value) {
+    if (value == LightningAddressType.p2l.value) return LightningAddressType.p2l;
+    if (value == ArkAddressType.p2ark.value) return ArkAddressType.p2ark;
+    if (value == ArkAddressType.boarding.value) return ArkAddressType.boarding;
+
+    try {
+      return BitcoinAddressType.fromValue(value);
+    } catch (_) {
+      printV('Unknown persisted addressPageType "$value", falling back to P2WPKH');
+      return SegwitAddresType.p2wpkh;
+    }
+  }
+
   String? lightningAddress;
+
+  /// Off-chain Ark address (`ark1...`), populated once the Ark client has connected.
+  String? arkAddress;
+
+  /// On-chain boarding address (`bc1p...`) for moving Bitcoin into Ark.
+  String? arkBoardingAddress;
 
   @computed
   List<BitcoinAddressRecord> get allAddresses => _addresses;
@@ -197,6 +220,16 @@ abstract class ElectrumWalletAddressesBase extends WalletAddresses with Store {
     if (addressPageType == LightningAddressType.p2l) {
       return lightningAddress ??
           "Error: Unable to fetch your Lightning address, please check your network connection.";
+    }
+
+    if (addressPageType == ArkAddressType.p2ark) {
+      return arkAddress ??
+          "Error: Unable to fetch your Arkade address, please check your network connection.";
+    }
+
+    if (addressPageType == ArkAddressType.boarding) {
+      return arkBoardingAddress ??
+          "Error: Unable to fetch your Arkade boarding address, please check your network connection.";
     }
 
     final typeMatchingAddressesAll =

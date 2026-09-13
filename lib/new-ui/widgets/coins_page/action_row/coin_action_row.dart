@@ -37,13 +37,6 @@ class CoinActionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Ark exposes a balance only. Send, receive and swap all route to the on-chain or lightning
-    // handlers, so showing them here would spend the wrong funds while the Ark balance is on
-    // screen. Hide the row until those paths exist.
-    if (!layer.supportsActions) {
-      return const SizedBox.shrink();
-    }
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 18.0),
       child: Row(
@@ -51,7 +44,10 @@ class CoinActionRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         spacing: MediaQuery.of(context).size.width * 0.05,
         children: [
-          CoinActionButton(
+          // Ark has no send path yet; the handler below would spend on-chain or
+          // lightning funds while the Ark balance is on screen.
+          if (layer.supportsSend)
+            CoinActionButton(
             icon: CakeImageWidget(
               imageUrl: "assets/new-ui/send.svg",
               colorFilter: ColorFilter.mode(
@@ -100,7 +96,7 @@ class CoinActionRow extends StatelessWidget {
             label: S.of(context).receive,
             action: () async {
               if (FeatureFlag.hasNewUiExtraPages) {
-                final page = getIt.get<NewReceivePage>(param1: layer.isLightning);
+                final page = getIt.get<NewReceivePage>(param1: layer);
                 CupertinoScaffold.showCupertinoModalBottomSheet(
                   context: context,
                   barrierColor: Colors.black.withAlpha(60),
@@ -121,7 +117,7 @@ class CoinActionRow extends StatelessWidget {
               }
             },
           ),
-          if (showSwap)
+          if (showSwap && layer.supportsSend)
             CoinActionButton(
               icon: CakeImageWidget(
                 imageUrl: "assets/new-ui/exchange.svg",
@@ -149,7 +145,9 @@ class CoinActionRow extends StatelessWidget {
                 }
               },
             ),
-          CoinActionButton(
+          // Scanning routes into the send flow, so it follows the same rule.
+          if (layer.supportsSend)
+            CoinActionButton(
             icon: CakeImageWidget(
               imageUrl: "assets/new-ui/scan.svg",
               colorFilter: ColorFilter.mode(

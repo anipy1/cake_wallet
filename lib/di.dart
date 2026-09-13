@@ -1,3 +1,4 @@
+import 'package:cake_wallet/new-ui/models/wallet_layer.dart';
 import 'dart:async' show Timer;
 
 import 'package:cake_wallet/.secrets.g.dart' as secrets;
@@ -864,12 +865,12 @@ Future<void> setup({
     ),
   );
 
-  getIt.registerFactoryParam<NewReceivePage, bool?, CryptoCurrency?>((param1, param2) =>
+  getIt.registerFactoryParam<NewReceivePage, WalletLayer?, CryptoCurrency?>((param1, param2) =>
       NewReceivePage(
           addressListViewModel: getIt.get<WalletAddressListViewModel>(),
           receiveOptionViewModel: getIt.get<ReceiveOptionViewModel>(),
           dashboardViewModel: getIt.get<DashboardViewModel>(),
-          lightningMode: param1 ?? false,
+          layer: param1 ?? WalletLayer.onChain,
           initialCurrency: param2));
 
   getIt.registerFactoryParam<WalletAddressEditOrCreateViewModel, WalletAddressListItem?, void>(

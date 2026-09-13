@@ -1,3 +1,4 @@
+import 'package:cw_bitcoin/ark/ark_address_type.dart';
 import 'package:bitcoin_base/bitcoin_base.dart';
 import 'package:blockchain_utils/bip/bip/bip32/bip32.dart';
 import 'package:cw_bitcoin/bitcoin_receive_page_option.dart';
@@ -115,6 +116,12 @@ abstract class BitcoinWalletAddressesBase extends ElectrumWalletAddresses with S
 
   @override
   PaymentURI getPaymentUri(String amount) {
+    // An `ark1...` address is not a Bitcoin address, so it must not be wrapped in a `bitcoin:`
+    // URI. The boarding address is a real on-chain address and keeps the normal treatment.
+    if (addressPageType == ArkAddressType.p2ark) {
+      return BitcoinURI(address: address, amount: amount);
+    }
+
     if (addressPageType is LightningAddressType && lightningWallet != null) {
       final lnUrl = getLnurlOfLightningAddress(address);
       return LightningPaymentRequest(address: address, lnURL: lnUrl, amount: amount);

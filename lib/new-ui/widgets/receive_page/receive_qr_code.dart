@@ -104,8 +104,10 @@ class ReceiveQrCode extends StatelessWidget {
                                           semanticsLabel: S.of(context).qr_code_receive_address,
                                           embeddedImagePath:
                                               addressListViewModel.tokenCurrency != null
-                                                  ? addressListViewModel.tokenCurrency ==
-                                                          CryptoCurrency.btcln
+                                                  ? (addressListViewModel.tokenCurrency ==
+                                                              CryptoCurrency.btcln ||
+                                                          addressListViewModel.tokenCurrency ==
+                                                              CryptoCurrency.btcark)
                                                       ? addressListViewModel.qrImage
                                                       : addressListViewModel
                                                           .tokenCurrency!.iconPath

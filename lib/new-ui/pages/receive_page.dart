@@ -1,3 +1,4 @@
+import 'package:cake_wallet/new-ui/models/wallet_layer.dart';
 import "package:cake_wallet/anonpay/anonpay_donation_link_info.dart";
 import "package:cake_wallet/bitcoin/bitcoin.dart";
 import "package:cake_wallet/core/utilities.dart";
@@ -45,7 +46,7 @@ class NewReceivePage extends StatefulWidget {
     required this.addressListViewModel,
     required this.receiveOptionViewModel,
     required this.dashboardViewModel,
-    required this.lightningMode,
+    required this.layer,
     super.key,
     CryptoCurrency? initialCurrency,
   }) {
@@ -57,7 +58,7 @@ class NewReceivePage extends StatefulWidget {
   final WalletAddressListViewModel addressListViewModel;
   final ReceiveOptionViewModel receiveOptionViewModel;
   final DashboardViewModel dashboardViewModel;
-  final bool lightningMode;
+  final WalletLayer layer;
 
   @override
   State<NewReceivePage> createState() => _NewReceivePageState();
@@ -72,13 +73,21 @@ class _NewReceivePageState extends State<NewReceivePage> {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (widget.lightningMode) {
+      if (widget.layer.isLightning) {
         widget.receiveOptionViewModel.selectReceiveOption(
           widget.receiveOptionViewModel.options
                   .firstWhereOrNull((item) => item.value.contains("Lightning")) ??
               ReceivePageOption.mainnet,
         );
         widget.addressListViewModel.selectedCurrency = CryptoCurrency.btcln;
+      } else if (widget.layer.isArk) {
+        // Matches the off-chain option rather than "Arkade Boarding", which is listed after it.
+        widget.receiveOptionViewModel.selectReceiveOption(
+          widget.receiveOptionViewModel.options
+                  .firstWhereOrNull((item) => item.value == "Arkade") ??
+              ReceivePageOption.mainnet,
+        );
+        widget.addressListViewModel.selectedCurrency = CryptoCurrency.btcark;
       } else if (widget.addressListViewModel.wallet.type == WalletType.bitcoin) {
         widget.receiveOptionViewModel.selectReceiveOption(
           widget.receiveOptionViewModel.options
@@ -180,7 +189,7 @@ class _NewReceivePageState extends State<NewReceivePage> {
         widget.addressListViewModel.dismissInfobox();
         setState(() {});
       },
-      autoGenerateSubaddressStatus: widget.lightningMode
+      autoGenerateSubaddressStatus: (widget.layer.isLightning || widget.layer.isArk)
           ? AutoGenerateSubaddressStatus.disabled
           : widget.dashboardViewModel.settingsStore.autoGenerateSubaddressStatus,
       addressRotates: _selectedAddressRotates,
@@ -273,7 +282,7 @@ class _NewReceivePageState extends State<NewReceivePage> {
                     ReceiveTokenDisplay(addressListViewModel: widget.addressListViewModel),
                   if (hasAddressTypeSelector)
                     ReceiveAddressTypeDisplay(
-                      lightningMode: widget.lightningMode,
+                      lightningMode: widget.layer.isLightning,
                       receiveOptionViewModel: widget.receiveOptionViewModel,
                       largeQrMode: _largeQrMode,
                     ),
