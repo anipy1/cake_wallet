@@ -947,6 +947,8 @@ abstract class ElectrumWalletBase
           return utx.bitcoinAddressRecord.type != SegwitAddresType.mweb;
         case UnspentCoinType.any:
         case UnspentCoinType.lightning:
+        // Ark spends VTXOs, not Electrum UTXOs, so it never reaches this selection.
+        case UnspentCoinType.ark:
           return true;
       }
     }).toList();

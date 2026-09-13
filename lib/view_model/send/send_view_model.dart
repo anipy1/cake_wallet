@@ -59,6 +59,7 @@ import 'package:cw_core/crypto_currency.dart';
 import 'package:cw_core/currency_for_wallet_type.dart';
 import 'package:cw_core/erc20_token.dart';
 import 'package:cw_core/exceptions.dart';
+import 'package:cw_core/format_fixed.dart';
 import 'package:cw_core/lnurl.dart';
 import 'package:cw_core/pending_transaction.dart';
 import 'package:cw_core/sync_status.dart';
@@ -82,8 +83,11 @@ abstract class SendViewModelBase extends WalletChangeListenerViewModel with Stor
   @override
   void onWalletChange(wallet) {
     currencies = wallet.balance.keys.toList();
-    selectedCryptoCurrency =
-        coinTypeToSpendFrom == UnspentCoinType.lightning ? CryptoCurrency.btcln : wallet.currency;
+    selectedCryptoCurrency = switch (coinTypeToSpendFrom) {
+      UnspentCoinType.lightning => CryptoCurrency.btcln,
+      UnspentCoinType.ark => CryptoCurrency.btcark,
+      _ => wallet.currency,
+    };
     hasMultipleTokens =
         isEVMWallet || [WalletType.solana, WalletType.tron, WalletType.zano].contains(wallet.type);
 
@@ -114,9 +118,11 @@ abstract class SendViewModelBase extends WalletChangeListenerViewModel with Stor
     this.coinTypeToSpendFrom = UnspentCoinType.nonMweb,
   })  : state = InitialExecutionState(),
         currencies = _appStore.wallet!.balance.keys.toList(),
-        selectedCryptoCurrency = coinTypeToSpendFrom == UnspentCoinType.lightning
-            ? CryptoCurrency.btcln
-            : _appStore.wallet!.currency,
+        selectedCryptoCurrency = switch (coinTypeToSpendFrom) {
+          UnspentCoinType.lightning => CryptoCurrency.btcln,
+          UnspentCoinType.ark => CryptoCurrency.btcark,
+          _ => _appStore.wallet!.currency,
+        },
         hasMultipleTokens = isEVMCompatibleChain(_appStore.wallet!.type) ||
             [WalletType.solana, WalletType.tron, WalletType.zano].contains(_appStore.wallet!.type),
         selectedChainId = _appStore.wallet!.chainId,
@@ -313,13 +319,28 @@ abstract class SendViewModelBase extends WalletChangeListenerViewModel with Stor
   Validator<String> amountValidator(Output output) => AmountValidator(
         currency: wallet.currency,
         amountParsingProxy: _appStore.amountParsingProxy,
-        minValue: isSendToSilentPayments(output)
-            ?
-            //  TODO: get from server
-            // bitcoin!.silentPaymentsMinAmount
-            '0.00001'
-            : null,
+        minValue: _minSendValue(output),
       );
+
+  /// Lower bound for the amount field, or null when the layer has none.
+  String? _minSendValue(Output output) {
+    if (isSendToSilentPayments(output)) {
+      //  TODO: get from server
+      // bitcoin!.silentPaymentsMinAmount
+      return '0.00001';
+    }
+
+    if (coinTypeToSpendFrom == UnspentCoinType.ark) {
+      // The operator refuses VTXOs below this, and the failure only surfaces once the send is
+      // built, so it is caught in the amount field instead.
+      final minSats = bitcoin?.arkMinSendSats(wallet);
+      if (minSats != null) {
+        return formatFixed(BigInt.from(minSats), 8);
+      }
+    }
+
+    return null;
+  }
 
   Validator<String> get allAmountValidator => AllAmountValidator();
 
@@ -451,10 +472,16 @@ abstract class SendViewModelBase extends WalletChangeListenerViewModel with Stor
         WalletType.bitcoinCash,
         WalletType.dogecoin
       ].contains(wallet.type) &&
-      coinTypeToSpendFrom != UnspentCoinType.lightning;
+      !_isOffChainLayer;
+
+  /// Lightning and Ark are off-chain layers: they carry no miner fee, no coin control and no
+  /// multi-recipient support, so the on-chain send affordances do not apply to them.
+  bool get _isOffChainLayer =>
+      coinTypeToSpendFrom == UnspentCoinType.lightning ||
+      coinTypeToSpendFrom == UnspentCoinType.ark;
 
   @computed
-  bool get hasFees => feesViewModel.hasFees && coinTypeToSpendFrom != UnspentCoinType.lightning;
+  bool get hasFees => feesViewModel.hasFees && !_isOffChainLayer;
 
   @computed
   bool get isElectrumWallet => [
@@ -504,8 +531,7 @@ abstract class SendViewModelBase extends WalletChangeListenerViewModel with Stor
   AmountParsingProxy get amountParsingProxy => _appStore.amountParsingProxy;
 
   @computed
-  bool get hasMultiRecipient =>
-      sendTemplateViewModel.hasMultiRecipient && coinTypeToSpendFrom != UnspentCoinType.lightning;
+  bool get hasMultiRecipient => sendTemplateViewModel.hasMultiRecipient && !_isOffChainLayer;
 
   @computed
   String get languageCode => _appStore.settingsStore.languageCode;

@@ -60,8 +60,11 @@ class CoinActionRow extends StatelessWidget {
               if (FeatureFlag.hasNewUiExtraPages) {
                 final sendPage = getIt.get<NewSendPage>(
                   param1: SendPageParams(
-                    unspentCoinType:
-                        layer.isLightning ? UnspentCoinType.lightning : UnspentCoinType.nonMweb,
+                    unspentCoinType: switch (layer) {
+                      WalletLayer.lightning => UnspentCoinType.lightning,
+                      WalletLayer.ark => UnspentCoinType.ark,
+                      WalletLayer.onChain => UnspentCoinType.nonMweb,
+                    },
                   ),
                 );
 
@@ -81,6 +84,7 @@ class CoinActionRow extends StatelessWidget {
               } else {
                 Map<String, dynamic>? args;
                 if (layer.isLightning) args = {'coinTypeToSpendFrom': UnspentCoinType.lightning};
+                if (layer.isArk) args = {'coinTypeToSpendFrom': UnspentCoinType.ark};
                 Navigator.of(context).pushNamed(Routes.send, arguments: args);
               }
             },
@@ -117,7 +121,7 @@ class CoinActionRow extends StatelessWidget {
               }
             },
           ),
-          if (showSwap && layer.supportsSend)
+          if (showSwap && layer.supportsSwap)
             CoinActionButton(
               icon: CakeImageWidget(
                 imageUrl: "assets/new-ui/exchange.svg",
@@ -170,7 +174,10 @@ class CoinActionRow extends StatelessWidget {
 
     PaymentRequest? req;
     String? rawInput;
-    var unspentCoinType = UnspentCoinType.any;
+    // Only Ark departs from the previous default: a scanned BIP-21 URI can carry both an
+    // on-chain and an Ark address, and the layer being viewed is what disambiguates them. The
+    // other layers keep `any`, so their scan behaviour is unchanged.
+    var unspentCoinType = layer.isArk ? UnspentCoinType.ark : UnspentCoinType.any;
     if (SendViewModelBase.isNonZeroAmountLightningInvoice(code)) {
       unspentCoinType = UnspentCoinType.lightning;
       final amount = getBolt11Amount(code)?.toString() ?? "0";

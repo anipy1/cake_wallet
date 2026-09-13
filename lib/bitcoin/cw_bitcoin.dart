@@ -263,6 +263,7 @@ class CWBitcoin extends Bitcoin {
         case UnspentCoinType.nonMweb:
           return element.bitcoinAddressRecord.type != SegwitAddresType.mweb;
         case UnspentCoinType.lightning:
+        case UnspentCoinType.ark:
         case UnspentCoinType.any:
           return true;
       }
@@ -329,6 +330,12 @@ class CWBitcoin extends Bitcoin {
     // Only the off-chain Ark address. Boarding is an ordinary on-chain address and should keep
     // the bitcoin treatment.
     return bitcoinWallet.walletAddresses.addressPageType == ArkAddressType.p2ark;
+  }
+
+  @override
+  int? arkMinSendSats(Object wallet) {
+    if (wallet is! BitcoinWallet) return null;
+    return wallet.arkWallet?.minSendSats;
   }
 
   @override

@@ -63,6 +63,7 @@ class AddressValidator extends TextValidator {
     CryptoCurrency.kmd,
     CryptoCurrency.doge,
     CryptoCurrency.btcln,
+    CryptoCurrency.btcark,
   ];
 
   static String? getPattern(CryptoCurrency type, {bool isTestnet = false, String? network}) {
@@ -197,6 +198,10 @@ class AddressValidator extends TextValidator {
       case CryptoCurrency.btcln:
         pattern =
             r'(lightning:)?(lnbc|lntb|lnbs|lnbcrt|lnurl|LNBC|LNTB|LNBS|LNBCRT|LNURL)[a-zA-Z0-9]+';
+      case CryptoCurrency.btcark:
+        // bech32m over a 65-byte payload, so the data part is a fixed 104 characters plus the
+        // 6-character checksum. Case-insensitive, as bech32 permits either.
+        pattern = r'(ark1|tark1|ARK1|TARK1)[023456789acdefghjklmnpqrstuvwxyzACDEFGHJKLMNPQRSTUVWXYZ]{110}';
       case CryptoCurrency.zano:
         pattern = r'([1-9A-HJ-NP-Za-km-z]{90,200})|(@[\w\d.-]+)';
       case CryptoCurrency.doge:
@@ -339,6 +344,7 @@ class AddressValidator extends TextValidator {
       case CryptoCurrency.near:
         return [64];
       case CryptoCurrency.btcln:
+      case CryptoCurrency.btcark:
       case CryptoCurrency.kaspa:
       case CryptoCurrency.zano:
       default:

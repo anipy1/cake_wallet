@@ -1172,7 +1172,16 @@ class _NewSendPageState extends State<NewSendPage> {
     if (widget.sendViewModel.usePayjoin) {
       widget.sendViewModel.payjoinUri = paymentRequest.pjUri;
     }
-    _addressControllers[_selectedOutput].text = paymentRequest.address;
+    // An Ark payee publishes one QR carrying both layers: an on-chain boarding address as the
+    // BIP-21 base and the off-chain address in `ark=`. Which one is wanted depends on the layer
+    // being spent from, and only this side knows that.
+    final arkAddress = paymentRequest.arkAddress;
+    final address =
+        widget.sendViewModel.coinTypeToSpendFrom == UnspentCoinType.ark && arkAddress != null
+            ? arkAddress
+            : paymentRequest.address;
+
+    _addressControllers[_selectedOutput].text = address;
     final amountToApply = amountOverride ?? paymentRequest.amount;
     if (amountToApply.isNotEmpty) {
       try {

@@ -252,6 +252,7 @@ abstract class Bitcoin {
   bool hasSelectedLightning(Object wallet);
   bool hasSelectedArk(Object wallet);
   Stream<int>? arkPaymentAmounts(Object wallet);
+  int? arkMinSendSats(Object wallet);
   bool isBitcoinReceivePageOption(ReceivePageOption option);
   BitcoinAddressType getOptionToType(ReceivePageOption option);
   bool hasTaprootInput(PendingTransaction pendingTransaction);

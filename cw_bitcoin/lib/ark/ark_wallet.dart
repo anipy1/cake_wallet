@@ -5,6 +5,7 @@ import 'package:ark_wallet/ark_wallet.dart' as ark;
 import 'package:cw_core/amount/money.dart';
 import 'package:cw_core/crypto_currency.dart';
 import 'package:cw_core/currency.dart';
+import 'package:cw_bitcoin/ark/pending_ark_transaction.dart';
 import 'package:cw_core/utils/print_verbose.dart';
 
 bool _arkLibUninitialized = true;
@@ -57,6 +58,11 @@ class ArkWallet {
 
   bool get isInitialized => _client != null;
 
+  int? _minSendSats;
+
+  /// Smallest VTXO the operator will accept, in sats. Null until the server has been reached.
+  int? get minSendSats => _minSendSats;
+
   ark.ArkWallet get client => _client!;
 
   Future<bool> init() async {
@@ -82,6 +88,15 @@ class ArkWallet {
       );
 
       printV('Ark: connected to $_kArkServer, renewal delegated to $_kDelegatorUrl');
+
+      // The operator sets a floor on VTXO size; below it the send is rejected when it is built.
+      // Cached here so the amount field can reject it before the user ever submits.
+      try {
+        final info = await client.serverInfo();
+        _minSendSats = info.vtxoMinAmount?.toInt() ?? info.dust.toInt();
+      } catch (e) {
+        printV('Ark: could not read the minimum send amount: $e');
+      }
 
       return true;
     } catch (e) {
@@ -123,6 +138,46 @@ class ArkWallet {
       printV('Ark: could not fetch balance: $e');
       return Money.zero(CryptoCurrency.btcark);
     }
+  }
+
+  /// True when [address] is an off-chain Ark address this wallet can pay directly.
+  static bool isArkAddress(String address) {
+    final trimmed = address.trim().toLowerCase();
+    return trimmed.startsWith('ark1') || trimmed.startsWith('tark1');
+  }
+
+  /// Prepare an off-chain Ark payment.
+  ///
+  /// Only Ark-to-Ark sends are supported. Paying an on-chain address from Ark requires a
+  /// settlement round, which the operator refuses for VTXOs outside its expiry window, so it
+  /// needs handling of its own rather than being folded in here.
+  PendingArkTransaction createTransaction(String address, BigInt amountSats) {
+    if (!isArkAddress(address)) {
+      throw ArkSendException('Ark can only pay another Ark address for now.');
+    }
+    if (!isInitialized) {
+      throw ArkSendException('Ark is not connected.');
+    }
+
+    final minimum = _minSendSats;
+    if (minimum != null && amountSats < BigInt.from(minimum)) {
+      throw ArkSendException('The smallest amount Arkade accepts is $minimum sats.');
+    }
+
+    return PendingArkTransaction(
+      amount: Money(amountSats, CryptoCurrency.btcark),
+      // Ark charges nothing for an off-chain output; the operator's fee schedule only prices
+      // on-chain inputs and outputs.
+      fee: Money.zero(CryptoCurrency.btcark),
+      commitOverride: () async {
+        try {
+          return await client.sendOffChain(address: address, sats: amountSats.toInt());
+        } catch (e) {
+          printV('Ark: send failed: $e');
+          throw ArkSendException(e.toString());
+        }
+      },
+    );
   }
 
   /// VTXOs arriving on this wallet's Ark address.
@@ -167,4 +222,15 @@ class ArkWallet {
   }
 
   void close() => _client = null;
+}
+
+/// Raised when an Ark send cannot be prepared or submitted. Carries the operator's message, which
+/// is the only useful diagnostic the caller gets.
+class ArkSendException implements Exception {
+  ArkSendException(this.message);
+
+  final String message;
+
+  @override
+  String toString() => message;
 }

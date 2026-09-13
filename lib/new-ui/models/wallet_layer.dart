@@ -26,10 +26,14 @@ enum WalletLayer {
   /// Ark can receive: it publishes an off-chain address and an on-chain boarding address.
   bool get supportsReceive => true;
 
-  /// Ark cannot send yet. The send and swap handlers operate on the on-chain or lightning
-  /// wallet, so offering them while Ark is selected would spend the wrong funds.
-  bool get supportsSend => this != WalletLayer.ark;
+  /// Every layer can send. Ark pays another Ark address off-chain; paying an on-chain address
+  /// from Ark needs a settlement round and is not offered yet.
+  bool get supportsSend => true;
+
+  /// Swaps route through the on-chain or Lightning wallet. There is no Ark swap path, so
+  /// offering it while Ark is selected would spend the wrong funds.
+  bool get supportsSwap => this != WalletLayer.ark;
 
   /// True when every action in the row is available.
-  bool get supportsAllActions => supportsSend && supportsReceive;
+  bool get supportsAllActions => supportsSend && supportsReceive && supportsSwap;
 }

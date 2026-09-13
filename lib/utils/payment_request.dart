@@ -19,6 +19,7 @@ class PaymentRequest {
     this.contractAddress,
     this.chainId,
     this.rawTokenAmount,
+    this.arkAddress,
   });
 
   factory PaymentRequest.fromString(String input) {
@@ -50,6 +51,7 @@ class PaymentRequest {
     String? contractAddress;
     int? chainId;
     String? rawTokenAmount;
+    String? arkAddress;
 
     if (uri != null) {
       if (uri.queryParameters["pj"] != null) {
@@ -67,6 +69,9 @@ class PaymentRequest {
       if (amount.isEmpty) {
         amount = uri.queryParameters["tx_amount"] ?? uri.queryParameters["amount"] ?? "";
       }
+      // Ark wallets publish `bitcoin:<boarding address>?ark=<ark address>`, so one QR serves
+      // both layers. The base address stays on-chain; whoever is sending off-chain picks this up.
+      arkAddress = uri.queryParameters["ark"];
       note = uri.queryParameters["tx_description"] ?? uri.queryParameters["message"] ?? "";
       scheme = uri.scheme;
       callbackUrl = uri.queryParameters["callback"];
@@ -122,6 +127,7 @@ class PaymentRequest {
       contractAddress: contractAddress,
       chainId: chainId,
       rawTokenAmount: rawTokenAmount,
+      arkAddress: arkAddress,
     );
   }
 
@@ -136,6 +142,7 @@ class PaymentRequest {
     String? contractAddress,
     int? chainId,
     String? rawTokenAmount,
+    String? arkAddress,
   }) =>
       PaymentRequest(
         address ?? this.address,
@@ -148,6 +155,7 @@ class PaymentRequest {
         contractAddress: contractAddress ?? this.contractAddress,
         chainId: chainId ?? this.chainId,
         rawTokenAmount: rawTokenAmount ?? this.rawTokenAmount,
+        arkAddress: arkAddress ?? this.arkAddress,
       );
 
   final String address;
@@ -160,6 +168,9 @@ class PaymentRequest {
   final String? contractAddress;
   final int? chainId;
   final String? rawTokenAmount;
+
+  /// The `ark=` parameter of a BIP-21 URI, when the payee published one.
+  final String? arkAddress;
 
   String? resolveTokenAmount(CryptoCurrency token) {
     if (amount.isNotEmpty) {

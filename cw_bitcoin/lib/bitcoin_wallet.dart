@@ -20,6 +20,7 @@ import 'package:cw_bitcoin/locktime.dart';
 import 'package:cw_bitcoin/hardware/bitcoin_hardware_wallet_service.dart';
 import 'package:ark_wallet/ark_wallet.dart' show ArkIncomingPayment;
 import 'package:cw_bitcoin/ark/ark_wallet.dart';
+import 'package:cw_bitcoin/ark/pending_ark_transaction.dart';
 import 'package:cw_core/pathForWallet.dart';
 import 'package:cw_core/wallet_type.dart';
 import 'package:cw_bitcoin/lightning/lightning_wallet.dart';
@@ -656,6 +657,21 @@ abstract class BitcoinWalletBase extends ElectrumWallet with Store {
     final lnAddr = credentials.outputs.first.isParsedAddress
         ? credentials.outputs.first.extractedAddress!
         : credentials.outputs.first.address;
+
+    // Ark is checked before Lightning: an `ark1...` destination is unambiguous, and the
+    // Lightning compatibility probe would otherwise be asked about an address it cannot parse.
+    if (credentials.coinTypeToSpendFrom == UnspentCoinType.ark || ArkWallet.isArkAddress(lnAddr)) {
+      final wallet = arkWallet;
+      if (wallet == null) {
+        throw ArkSendException('Ark is not available on this wallet.');
+      }
+
+      final output = credentials.outputs.first;
+      final amount =
+          output.sendAll ? await wallet.getBalance() : output.cryptoAmount;
+
+      return wallet.createTransaction(lnAddr, amount.amount);
+    }
 
     final isLNCompatible = await lightningWallet?.isCompatible(lnAddr);
     if ((credentials.coinTypeToSpendFrom == UnspentCoinType.lightning && lightningWallet != null) ||
