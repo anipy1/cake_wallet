@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:bip39/bip39.dart' as bip39;
@@ -386,6 +387,8 @@ abstract class BitcoinWalletBase extends ElectrumWallet with Store {
   @override
   Future<void> close({bool shouldCleanup = false}) async {
     payjoinManager.cleanupSessions();
+    _arkRefreshTimer?.cancel();
+    _arkRefreshTimer = null;
     await lightningWallet?.close();
     super.close(shouldCleanup: shouldCleanup);
   }
@@ -393,6 +396,10 @@ abstract class BitcoinWalletBase extends ElectrumWallet with Store {
   @override
   Future<ElectrumBalance> fetchBalances() async {
     final balance = await super.fetchBalances();
+
+    // Ark is independent of Lightning, so it must be refreshed before the early return below.
+    await updateArkBalance();
+
     if (!isLightningInitialized || lightningWallet == null) {
       return balance;
     }
@@ -443,6 +450,9 @@ abstract class BitcoinWalletBase extends ElectrumWallet with Store {
       );
     }
 
+    _arkRefreshTimer?.cancel();
+    _arkRefreshTimer = Timer.periodic(_kArkRefreshInterval, (_) => updateArkBalance());
+
     return super.subscribeForUpdates();
   }
 
@@ -466,6 +476,12 @@ abstract class BitcoinWalletBase extends ElectrumWallet with Store {
 
   /// Ark (Arkade) balance for this wallet. Derived from the same seed as the Bitcoin wallet.
   ArkWallet? arkWallet;
+
+  /// Ark VTXOs arrive off-chain, so no Electrum event announces them and the balance would
+  /// otherwise only move when a Bitcoin block does. Polling is a stopgap until the Ark
+  /// subscription stream is plumbed through to Dart.
+  Timer? _arkRefreshTimer;
+  static const _kArkRefreshInterval = Duration(seconds: 30);
 
   late final PayjoinManager payjoinManager;
 
