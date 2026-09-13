@@ -18,6 +18,7 @@ import 'package:cw_bitcoin/electrum_wallet.dart';
 import 'package:cw_bitcoin/electrum_wallet_snapshot.dart';
 import 'package:cw_bitcoin/locktime.dart';
 import 'package:cw_bitcoin/hardware/bitcoin_hardware_wallet_service.dart';
+import 'package:ark_wallet/ark_wallet.dart' show ArkIncomingPayment;
 import 'package:cw_bitcoin/ark/ark_wallet.dart';
 import 'package:cw_core/pathForWallet.dart';
 import 'package:cw_core/wallet_type.dart';
@@ -193,6 +194,8 @@ abstract class BitcoinWalletBase extends ElectrumWallet with Store {
       // address used to move Bitcoin into Ark.
       walletAddresses.arkAddress = await wallet.getAddress();
       walletAddresses.arkBoardingAddress = await wallet.getBoardingAddress();
+
+      _listenForArkPayments(wallet);
     } catch (e) {
       printV('Ark: initialisation failed: $e');
     }
@@ -215,6 +218,31 @@ abstract class BitcoinWalletBase extends ElectrumWallet with Store {
     } catch (e) {
       printV('Ark: could not update balance: $e');
     }
+  }
+
+  void _listenForArkPayments(ArkWallet wallet) {
+    final stream = wallet.watchIncomingPayments();
+    if (stream == null) {
+      printV('Ark: no payment stream available');
+      return;
+    }
+
+    _arkPaymentSubscription?.cancel();
+    printV('Ark: subscribing to incoming payments');
+    _arkPaymentSubscription = stream.listen(
+      (payment) async {
+        printV('Ark: payment received ${payment.amount} sats (${payment.txid}:${payment.vout})');
+        await updateArkBalance();
+        if (!_arkPaymentController.isClosed) {
+          _arkPaymentController.add(payment);
+        }
+      },
+      // The stream ends on a dropped connection. The polling timer already covers that case, so
+      // a failure here degrades the latency rather than the correctness of the balance.
+      onError: (Object e) => printV('Ark: payment stream failed: $e'),
+      onDone: () => printV('Ark: payment stream closed'),
+      cancelOnError: true,
+    );
   }
 
   bool get isLightningInitialized => lightningWallet?.isInitialized == true;
@@ -389,6 +417,8 @@ abstract class BitcoinWalletBase extends ElectrumWallet with Store {
     payjoinManager.cleanupSessions();
     _arkRefreshTimer?.cancel();
     _arkRefreshTimer = null;
+    await _arkPaymentSubscription?.cancel();
+    _arkPaymentSubscription = null;
     await lightningWallet?.close();
     super.close(shouldCleanup: shouldCleanup);
   }
@@ -477,11 +507,19 @@ abstract class BitcoinWalletBase extends ElectrumWallet with Store {
   /// Ark (Arkade) balance for this wallet. Derived from the same seed as the Bitcoin wallet.
   ArkWallet? arkWallet;
 
-  /// Ark VTXOs arrive off-chain, so no Electrum event announces them and the balance would
-  /// otherwise only move when a Bitcoin block does. Polling is a stopgap until the Ark
-  /// subscription stream is plumbed through to Dart.
+  /// Ark VTXOs arrive off-chain, so no Electrum event announces them. The subscription below
+  /// reports them as they land; the timer is a fallback for when that stream is unavailable or
+  /// has dropped.
   Timer? _arkRefreshTimer;
   static const _kArkRefreshInterval = Duration(seconds: 30);
+
+  StreamSubscription<ArkIncomingPayment>? _arkPaymentSubscription;
+  final StreamController<ArkIncomingPayment> _arkPaymentController =
+      StreamController<ArkIncomingPayment>.broadcast();
+
+  /// Ark payments as they arrive, for screens that want to react to one (the receive screen
+  /// shows a confirmation). Balance updates happen regardless of whether anyone is listening.
+  Stream<ArkIncomingPayment> get arkPayments => _arkPaymentController.stream;
 
   late final PayjoinManager payjoinManager;
 
