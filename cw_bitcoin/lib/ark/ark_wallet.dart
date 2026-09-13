@@ -6,6 +6,9 @@ import 'package:cw_core/amount/money.dart';
 import 'package:cw_core/crypto_currency.dart';
 import 'package:cw_core/currency.dart';
 import 'package:cw_bitcoin/ark/pending_ark_transaction.dart';
+import 'package:cw_bitcoin/electrum_transaction_info.dart';
+import 'package:cw_core/transaction_direction.dart';
+import 'package:cw_core/wallet_type.dart';
 import 'package:cw_core/utils/print_verbose.dart';
 
 bool _arkLibUninitialized = true;
@@ -138,6 +141,61 @@ class ArkWallet {
       printV('Ark: could not fetch balance: $e');
       return Money.zero(CryptoCurrency.btcark);
     }
+  }
+
+  /// Ark transaction history, keyed by id so it merges with the wallet's existing history.
+  ///
+  /// Boarding is always incoming and offboarding always outgoing, so their amounts are unsigned;
+  /// commitment and Ark transactions carry the direction in the sign of the amount.
+  Future<Map<String, ElectrumTransactionInfo>> getTransactionHistory() async {
+    if (!isInitialized) return {};
+
+    final List<ark.Transaction> history;
+    try {
+      history = await client.transactionHistory();
+    } catch (e) {
+      printV('Ark: could not fetch transaction history: $e');
+      return {};
+    }
+
+    final result = <String, ElectrumTransactionInfo>{};
+    for (final tx in history) {
+      final info = _toTransactionInfo(tx);
+      result[info.id] = info;
+    }
+    return result;
+  }
+
+  ElectrumTransactionInfo _toTransactionInfo(ark.Transaction tx) {
+    // `kind` records whether the id is a Bitcoin txid. Boarding, commitment and offboard all
+    // reference on-chain transactions, so a block explorer can show them; a redeem is a purely
+    // off-chain Ark transaction and exists nowhere on the chain.
+    final (String id, int sats, int? at, bool incoming, bool pending, String kind) = switch (tx) {
+      ark.Transaction_Boarding(:final txid, :final sats, :final confirmedAt) =>
+        (txid, sats.toInt(), confirmedAt?.toInt(), true, confirmedAt == null, 'boarding'),
+      ark.Transaction_Offboard(:final commitmentTxid, :final sats, :final confirmedAt) =>
+        (commitmentTxid, sats.toInt(), confirmedAt?.toInt(), false, confirmedAt == null, 'offboard'),
+      ark.Transaction_Commitment(:final txid, :final sats, :final createdAt) =>
+        (txid, sats.toInt(), createdAt.toInt(), sats.toInt() >= 0, false, 'commitment'),
+      // Not settled means this wallet's outputs in it have not been spent yet. That is the normal
+      // resting state of a received VTXO, not a pending payment, so it is not shown as pending.
+      ark.Transaction_Redeem(:final txid, :final sats, :final createdAt) =>
+        (txid, sats.toInt(), createdAt.toInt(), sats.toInt() >= 0, false, 'redeem'),
+    };
+
+    return ElectrumTransactionInfo(
+      WalletType.bitcoin,
+      id: id,
+      amount: Money(BigInt.from(sats.abs()), CryptoCurrency.btcark),
+      direction: incoming ? TransactionDirection.incoming : TransactionDirection.outgoing,
+      isPending: pending,
+      fee: Money.zero(CryptoCurrency.btcark),
+      date: at != null
+          ? DateTime.fromMillisecondsSinceEpoch(at * 1000)
+          : DateTime.now(),
+      confirmations: pending ? 0 : 1,
+      additionalInfo: {'isArk': true, 'arkKind': kind},
+    );
   }
 
   /// True when [address] is an off-chain Ark address this wallet can pay directly.

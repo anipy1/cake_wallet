@@ -97,6 +97,8 @@ class HistorySection extends StatelessWidget {
                             CryptoCurrency? asset;
                             if (transaction.additionalInfo["isLightning"] == true)
                               asset = CryptoCurrency.btcln;
+                            else if (transaction.additionalInfo["isArk"] == true)
+                              asset = CryptoCurrency.btcark;
                             else
                               asset = item.assetOfTransaction;
 

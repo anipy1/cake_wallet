@@ -52,6 +52,9 @@ String _moneroRecipientAddressForDisplay(String raw, WalletType walletType) {
 
 bool isLightning(TransactionInfo tx) => (tx.additionalInfo["isLightning"] as bool?) ?? false;
 
+bool isArk(TransactionInfo tx) => (tx.additionalInfo["isArk"] as bool?) ?? false;
+
+
 bool hasLightningPreimage(TransactionInfo tx) => (tx.additionalInfo["preimage"] as String?) != null;
 
 class TxDetailRowDefinition {
@@ -85,8 +88,9 @@ class TxDetailRowDefinition {
       title: S.current.transaction_details_height,
       valueGetter: (vm) => vm.transactionInfo.height?.toString() ?? "",
       applicable: (vm) =>
-          ![WalletType.solana, WalletType.tron].contains(vm.wallet.type) ||
-          !isLightning(vm.transactionInfo),
+          (![WalletType.solana, WalletType.tron].contains(vm.wallet.type) ||
+              !isLightning(vm.transactionInfo)) &&
+          !isArk(vm.transactionInfo),
     ),
     TxDetailRowDefinition(
       keyString: "standard_list_item_transaction_details_fee_key",
@@ -103,7 +107,8 @@ class TxDetailRowDefinition {
       applicable: (vm) =>
           [...electrumWalletTypes, ...evmWalletTypes, WalletType.zcash, WalletType.monero]
               .contains(vm.wallet.type) &&
-          !isLightning(vm.transactionInfo),
+          !isLightning(vm.transactionInfo) &&
+          !isArk(vm.transactionInfo),
       listItemBuilder: ConfirmationsListItem.new,
     ),
     TxDetailRowDefinition(
@@ -331,6 +336,10 @@ abstract class TransactionDetailsViewModelBase with Store {
       return CryptoCurrency.btcln;
     }
 
+    if (isArk(transactionInfo)) {
+      return CryptoCurrency.btcark;
+    }
+
     return switch (wallet.type) {
       WalletType.solana => solana!.assetOfTransaction(wallet, transactionInfo),
       WalletType.tron => tron!.assetOfTransaction(wallet, transactionInfo),
@@ -457,6 +466,11 @@ abstract class TransactionDetailsViewModelBase with Store {
       case WalletType.monero:
         return "https://monero.com/tx/${txId}";
       case WalletType.bitcoin:
+        if (isArk(transactionInfo)) {
+          // Arkade's own explorer, which resolves off-chain Ark transactions that never appear
+          // on the Bitcoin chain and so cannot be looked up on a block explorer.
+          return "https://arkade.space/tx/${txId}";
+        }
         return isLightning(transactionInfo)
             ? "https://sparkscan.io/tx/${txId}"
             : 'https://mempool.cakewallet.com/${wallet.isTestnet ? "testnet/" : ""}tx/${txId}';
@@ -500,6 +514,10 @@ abstract class TransactionDetailsViewModelBase with Store {
         return "";
     }
   }
+
+  /// False when the transaction has no chain presence, so the caller can drop the row entirely
+  /// rather than offering a link that goes nowhere.
+  bool get hasExplorer => _explorerUrl.isNotEmpty;
 
   String get explorerDescription => S.current.view_transaction_on + Uri.parse(_explorerUrl).host;
 

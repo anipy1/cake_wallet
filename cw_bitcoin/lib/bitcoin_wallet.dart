@@ -500,6 +500,15 @@ abstract class BitcoinWalletBase extends ElectrumWallet with Store {
       }).onError((_, __) {});
     }
 
+    final ark = arkWallet;
+    if (ark != null) {
+      ark.getTransactionHistory().then((arkHistory) async {
+        if (arkHistory.isEmpty) return;
+        transactionHistory.addMany(arkHistory);
+        await transactionHistory.save();
+      }).onError((_, __) {});
+    }
+
     return super.fetchTransactions();
   }
 
