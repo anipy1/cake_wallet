@@ -81,7 +81,7 @@ dependencies:
   ark_wallet:
     git:
       url: https://github.com/anipy1/dart-ark-wallet
-      ref: 1dc801eeb3f13e23e0c8f2ab9962a0c88caee625
+      ref: caeaf501656bcc23cf77def1dd55822dbe2489bf
 
 dev_dependencies:
   flutter_test:

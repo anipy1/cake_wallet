@@ -125,6 +125,20 @@ class ArkWallet {
     }
   }
 
+  /// VTXOs arriving on this wallet's Ark address.
+  ///
+  /// Ark payments settle off-chain, so no Electrum event announces them. Returns null when the
+  /// client is not up, in which case the caller falls back to polling.
+  Stream<ark.ArkIncomingPayment>? watchIncomingPayments() {
+    if (!isInitialized) return null;
+    try {
+      return client.watchIncomingPayments();
+    } catch (e) {
+      printV('Ark: could not watch incoming payments: $e');
+      return null;
+    }
+  }
+
   /// Balance whose batch has expired: still spendable, but it has lost the ability to exit
   /// unilaterally until it is renewed via a settle.
   Future<Money> getRecoverableBalance() async {

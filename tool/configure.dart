@@ -251,6 +251,7 @@ abstract class Bitcoin {
   bool hasSelectedSilentPayments(Object wallet);
   bool hasSelectedLightning(Object wallet);
   bool hasSelectedArk(Object wallet);
+  Stream<int>? arkPaymentAmounts(Object wallet);
   bool isBitcoinReceivePageOption(ReceivePageOption option);
   BitcoinAddressType getOptionToType(ReceivePageOption option);
   bool hasTaprootInput(PendingTransaction pendingTransaction);

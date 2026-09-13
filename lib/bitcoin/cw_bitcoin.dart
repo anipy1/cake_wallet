@@ -332,6 +332,14 @@ class CWBitcoin extends Bitcoin {
   }
 
   @override
+  Stream<int>? arkPaymentAmounts(Object wallet) {
+    if (wallet is! BitcoinWallet) return null;
+    // Only the amount crosses this boundary: screens want to confirm that something arrived,
+    // not to reason about VTXOs.
+    return wallet.arkPayments.map((payment) => payment.amount.toInt());
+  }
+
+  @override
   BitcoinAddressType getBitcoinAddressType(ReceivePageOption option) {
     switch (option) {
       case BitcoinReceivePageOption.p2pkh:

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cake_wallet/new-ui/models/wallet_layer.dart';
 import "package:cake_wallet/anonpay/anonpay_donation_link_info.dart";
 import "package:cake_wallet/bitcoin/bitcoin.dart";
@@ -21,7 +23,9 @@ import "package:cake_wallet/new-ui/widgets/receive_page/receive_qr_code.dart";
 import "package:cake_wallet/new-ui/widgets/receive_page/receive_token_display.dart";
 import "package:cake_wallet/new-ui/widgets/receive_page/receive_top_bar.dart";
 import "package:cake_wallet/routes.dart";
+import "package:cake_wallet/src/widgets/alert_with_one_action.dart";
 import "package:cake_wallet/src/screens/receive/anonpay_receive_page.dart";
+import "package:cake_wallet/utils/show_pop_up.dart";
 import "package:cake_wallet/utils/share_util.dart";
 import "package:cake_wallet/view_model/dashboard/dashboard_view_model.dart";
 import "package:cake_wallet/view_model/dashboard/receive_option_view_model.dart";
@@ -68,6 +72,8 @@ class _NewReceivePageState extends State<NewReceivePage> {
   bool _largeQrMode = false;
   late WalletAddressListItem? _addressItemWithLabel;
 
+  StreamSubscription<int>? _arkPaymentSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -97,6 +103,8 @@ class _NewReceivePageState extends State<NewReceivePage> {
         widget.addressListViewModel.selectedCurrency = CryptoCurrency.btc;
       }
     });
+
+    _listenForArkPayments();
 
     reaction((_) => widget.addressListViewModel.uri, _reloadAddressWithLabel);
 
@@ -396,6 +404,36 @@ class _NewReceivePageState extends State<NewReceivePage> {
     ).then((value) {
       _reloadAddressWithLabel(widget.addressListViewModel.uri);
     });
+  }
+
+  /// Ark payments settle off-chain and arrive in seconds, so the receive screen can confirm one
+  /// while the user is still looking at it rather than making them go back and refresh.
+  void _listenForArkPayments() {
+    if (!widget.layer.isArk) return;
+
+    final payments = bitcoin?.arkPaymentAmounts(widget.addressListViewModel.wallet);
+    if (payments == null) return;
+
+    _arkPaymentSubscription = payments.listen((amount) {
+      if (!mounted) return;
+      // A SnackBar renders behind this page's bottom buttons, so the confirmation has to be a
+      // dialog to actually be seen.
+      showPopUp<void>(
+        context: context,
+        builder: (dialogContext) => AlertWithOneAction(
+          alertTitle: S.of(context).received,
+          alertContent: '$amount sats',
+          buttonText: S.of(context).ok,
+          buttonAction: () => Navigator.of(dialogContext).pop(),
+        ),
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _arkPaymentSubscription?.cancel();
+    super.dispose();
   }
 
   void _reloadAddressWithLabel(PaymentURI newAddress) {
