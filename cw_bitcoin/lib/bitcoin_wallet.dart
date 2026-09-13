@@ -237,6 +237,18 @@ abstract class BitcoinWalletBase extends ElectrumWallet with Store {
         if (!_arkPaymentController.isClosed) {
           _arkPaymentController.add(payment);
         }
+
+        // The balance moves immediately but the history is only fetched during a sync, so
+        // without this a payment that just arrived is missing from the list until the next one.
+        try {
+          final arkHistory = await wallet.getTransactionHistory();
+          if (arkHistory.isNotEmpty) {
+            transactionHistory.addMany(arkHistory);
+            await transactionHistory.save();
+          }
+        } catch (e) {
+          printV('Ark: could not refresh history after a payment: $e');
+        }
       },
       // The stream ends on a dropped connection. The polling timer already covers that case, so
       // a failure here degrades the latency rather than the correctness of the balance.
@@ -506,7 +518,9 @@ abstract class BitcoinWalletBase extends ElectrumWallet with Store {
         if (arkHistory.isEmpty) return;
         transactionHistory.addMany(arkHistory);
         await transactionHistory.save();
-      }).onError((_, __) {});
+      }).onError((Object e, __) {
+        printV('Ark: failed to merge transaction history: $e');
+      });
     }
 
     return super.fetchTransactions();

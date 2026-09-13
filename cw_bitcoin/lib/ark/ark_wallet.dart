@@ -174,6 +174,7 @@ class ArkWallet {
     final List<ark.Transaction> history;
     try {
       history = await client.transactionHistory();
+      printV('Ark: transaction history returned ${history.length} entries');
     } catch (e) {
       printV('Ark: could not fetch transaction history: $e');
       return {};
